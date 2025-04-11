@@ -1,10 +1,35 @@
 pipeline {
-    agent any  // يمكن أن يعمل على أي agent في Jenkins
+    agent {
+        docker {
+            image 'jenkins/jenkins:lts'  
+            args '-v /var/jenkins_home:/var/jenkins_home'  
+        }
+    }
     environment {
         AWS_ACCESS_KEY_ID = credentials('aws-credentials')
         AWS_SECRET_ACCESS_KEY = credentials('aws-credentials')
     }
     stages {
+        stage('Install Terraform') {
+            steps {
+                script {
+                    // تثبيت Terraform داخل الحاوية
+                    sh '''
+                    # تحديث الحاوية وتثبيت الأدوات المطلوبة
+                    apt-get update
+                    apt-get install -y wget unzip
+
+                    # تحميل وتثبيت Terraform
+                    wget https://releases.hashicorp.com/terraform/1.11.4/terraform_1.11.4_linux_amd64.zip
+                    unzip terraform_1.11.4_linux_amd64.zip
+                    sudo mv terraform /usr/local/bin/
+
+                    # تأكيد أن Terraform تم تثبيته بنجاح
+                    terraform --version
+                    '''
+                }
+            }
+        }
         stage('Terraform Init') {
             steps {
                 dir('/var/jenkins_home/terraform-aws-ec2') {
